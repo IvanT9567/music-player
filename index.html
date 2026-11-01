@@ -1,0 +1,1698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="theme-color" content="#101014" />
+<title>Tesla Music</title>
+
+<!--
+  TESLA MUSIC — single-file template
+  - No build step.
+  - Change CONFIG below to add free API keys.
+  - Data is stored in localStorage on the iPhone.
+  - Designed for Safari on iPhone + Tesla Bluetooth.
+-->
+
+<style>
+:root {
+  --bg:#101014;
+  --card:#1a1b22;
+  --text:#f5f6fa;
+  --muted:#9aa0b4;
+  --accent:#3ddc84;
+  --danger:#ff6b6b;
+  --radius:14px;
+}
+
+* { box-sizing:border-box; }
+
+html, body {
+  margin:0;
+  padding:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+
+body {
+  padding-bottom:calc(150px + env(safe-area-inset-bottom));
+}
+
+header {
+  position:sticky;
+  top:0;
+  z-index:20;
+  background:rgba(16,16,20,.92);
+  backdrop-filter:blur(12px);
+  padding:calc(env(safe-area-inset-top) + 10px) 14px 8px;
+  border-bottom:1px solid #2a2b35;
+}
+
+h1 { font-size:18px; margin:0; }
+.status { color:var(--muted); font-size:12px; margin-top:4px; min-height:16px; }
+
+.tabs {
+  display:flex;
+  gap:6px;
+  padding:8px 10px;
+  overflow-x:auto;
+  background:#15161c;
+  border-bottom:1px solid #2a2b35;
+  position:sticky;
+  top:calc(env(safe-area-inset-top) + 54px);
+  z-index:19;
+}
+
+.tabs button {
+  border:0;
+  background:#222430;
+  color:var(--text);
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:13px;
+  white-space:nowrap;
+}
+
+.tabs button.active {
+  background:var(--accent);
+  color:#062b17;
+  font-weight:700;
+}
+
+main { padding:12px; }
+
+section.tab { display:none; }
+section.tab.active { display:block; }
+
+.card {
+  background:var(--card);
+  border-radius:var(--radius);
+  padding:12px;
+  margin-bottom:12px;
+  border:1px solid #262835;
+}
+
+label { font-size:12px; color:var(--muted); }
+
+input, textarea, select {
+  width:100%;
+  background:#111219;
+  color:var(--text);
+  border:1px solid #2d3040;
+  border-radius:10px;
+  padding:10px;
+  font-size:16px;
+  margin-top:6px;
+}
+
+button {
+  background:#2a2c3a;
+  color:var(--text);
+  border:0;
+  border-radius:10px;
+  padding:9px 10px;
+  font-size:14px;
+  min-height:38px;
+}
+
+button.primary { background:var(--accent); color:#062b17; font-weight:700; }
+button.small { padding:6px 8px; font-size:12px; min-height:30px; margin-left:4px; }
+
+.row { display:flex; gap:8px; align-items:center; }
+.grow { flex:1; }
+
+ul.list { list-style:none; margin:10px 0 0; padding:0; }
+
+li.track, li.queue-item, li.rec, li.history-item, li.playlist-item {
+  display:grid;
+  grid-template-columns:44px 1fr auto;
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border-bottom:1px solid #262835;
+}
+
+li.history-item, li.playlist-item {
+  grid-template-columns:1fr auto;
+}
+
+img.thumb {
+  width:44px;
+  height:44px;
+  border-radius:8px;
+  background:#222;
+  object-fit:cover;
+}
+
+.meta strong { display:block; font-size:14px; line-height:1.2; }
+.meta span { color:var(--muted); font-size:12px; display:block; margin-top:2px; }
+
+.actions { display:flex; flex-direction:column; gap:4px; }
+.actions button { min-height:30px; padding:5px 8px; font-size:12px; }
+
+.muted { color:var(--muted); font-size:13px; }
+
+pre#importLog {
+  background:#0b0c10;
+  border-radius:10px;
+  padding:10px;
+  max-height:160px;
+  overflow:auto;
+  color:#d7dae5;
+  font-size:12px;
+  margin-top:8px;
+}
+
+footer.playerbar {
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(18,19,26,.97);
+  backdrop-filter:blur(14px);
+  border-top:1px solid #2b2d3a;
+  padding:8px 10px calc(env(safe-area-inset-bottom) + 8px);
+  z-index:30;
+}
+
+.player-main {
+  display:grid;
+  grid-template-columns:56px 1fr auto;
+  gap:8px;
+  align-items:center;
+  margin-bottom:6px;
+}
+
+#nowArt {
+  width:56px;
+  height:56px;
+  border-radius:10px;
+  background:#222;
+  object-fit:cover;
+}
+
+.progress-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:11px;
+  color:var(--muted);
+}
+
+input[type=range] {
+  flex:1;
+  margin:0;
+  padding:0;
+  height:28px;
+}
+
+.controls {
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:6px;
+  margin-top:6px;
+}
+
+.controls button {
+  background:#242633;
+  border-radius:12px;
+  font-size:16px;
+  min-height:42px;
+}
+
+#playBtn {
+  background:var(--accent);
+  color:#062b17;
+  font-weight:900;
+}
+
+.badge {
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:999px;
+  background:#2d3040;
+  color:var(--muted);
+  font-size:10px;
+  margin-left:4px;
+}
+
+.badge.keep { background:#1f513a; color:#b8ffd9; }
+.badge.reject { background:#5a2731; color:#ffd0d6; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tesla Music</h1>
+  <div id="status" class="status">Ready. Tap play once to start Bluetooth audio.</div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="search">Search</button>
+  <button data-tab="queue">Queue</button>
+  <button data-tab="playlists">Playlists</button>
+  <button data-tab="history">History</button>
+  <button data-tab="recs">Recs</button>
+  <button data-tab="import">Import</button>
+</nav>
+
+<main>
+  <!-- SEARCH -->
+  <section id="tab-search" class="tab active">
+    <form id="searchForm" class="card row">
+      <input id="searchInput" placeholder="Search artist or song" autocomplete="off" />
+      <button class="primary grow" type="submit">Search</button>
+    </form>
+
+    <div class="card">
+      <h3>Results</h3>
+      <p class="muted">Jamendo = full ad-free stream if Client ID is set. iTunes = 30s preview, no key needed.</p>
+      <ul id="resultsList" class="list"></ul>
+    </div>
+  </section>
+
+  <!-- QUEUE -->
+  <section id="tab-queue" class="tab">
+    <div class="card row">
+      <strong>Queue</strong>
+      <span class="grow muted" id="queueCount">0 songs</span>
+      <button data-action="play-all" class="small primary">Play all</button>
+      <button data-action="clear-queue" class="small">Clear</button>
+    </div>
+
+    <ul id="queueList" class="list"></ul>
+  </section>
+
+  <!-- PLAYLISTS -->
+  <section id="tab-playlists" class="tab">
+    <form id="playlistForm" class="card row">
+      <input id="playlistName" placeholder="New playlist name" />
+      <button class="primary grow" type="submit">Create</button>
+    </form>
+
+    <div class="card">
+      <h3>Playlists</h3>
+      <ul id="playlistList" class="list"></ul>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" class="tab">
+    <div class="card">
+      <h3>History / Keep-Reject</h3>
+      <p class="muted">Keep/reject is linked by MusicBrainz ID when available.</p>
+      <ul id="historyList" class="list"></ul>
+    </div>
+  </section>
+
+  <!-- RECOMMENDATIONS -->
+  <section id="tab-recs" class="tab">
+    <div class="card row">
+      <strong>Recommendations</strong>
+      <span class="grow muted" id="recSourceLabel">Last.fm / ListenBrainz if configured</span>
+      <button data-action="refresh-recs" class="small primary">Refresh</button>
+    </div>
+
+    <ul id="recsList" class="list"></ul>
+  </section>
+
+  <!-- BULK IMPORT -->
+  <section id="tab-import" class="tab">
+    <div class="card">
+      <h3>Bulk import</h3>
+      <label>Paste one song per line: Artist - Title</label>
+      <textarea id="importText" rows="8" placeholder="Daft Punk - One More Time&#10;Justice - D.A.N.C.E."></textarea>
+      <div class="row" style="margin-top:8px">
+        <button data-action="run-import" class="primary grow">Import to queue</button>
+      </div>
+      <pre id="importLog"></pre>
+    </div>
+  </section>
+</main>
+
+<!-- PLAYER BAR -->
+<footer class="playerbar">
+  <div class="player-main">
+    <img id="nowArt" src="" alt="" />
+    <div>
+      <strong id="nowTitle">Nothing playing</strong>
+      <span class="muted" id="nowArtist"></span>
+      <span class="badge" id="adStatus">AdShield off</span>
+    </div>
+    <button data-action="add-current-playlist" class="small">+PL</button>
+  </div>
+
+  <div class="progress-row">
+    <span id="timeCurrent">0:00</span>
+    <input type="range" id="seek" min="0" max="100" value="0" step="0.1" />
+    <span id="timeTotal">0:00</span>
+  </div>
+
+  <div class="controls">
+    <button data-action="prev" aria-label="Previous">⏮</button>
+    <button id="playBtn" data-action="toggle-play" aria-label="Play/Pause">▶</button>
+    <button data-action="next" aria-label="Next">⏭</button>
+    <button data-action="keep-current" class="small" style="font-size:12px">Keep</button>
+    <button data-action="reject-current" class="small" style="font-size:12px">Reject</button>
+  </div>
+</footer>
+
+<!-- Main audio element. This is what Tesla / iPhone lock screen controls. -->
+<audio id="audio" playsinline preload="auto"></audio>
+
+<script>
+'use strict';
+
+/* =====================================================================
+   CONFIG — paste free API keys here. No build step required.
+   ===================================================================== */
+const CONFIG = {
+  // Free Jamendo Client ID: https://jamendo.com/api
+  jamendoClientId: '',
+
+  // Optional Last.fm API key: https://developer.last.fm
+  lastfmApiKey: '',
+
+  // Optional ListenBrainz username + token: https://listenbrainz.org/settings/
+  listenbrainzUsername: '',
+  listenbrainzToken: '',
+
+  // AdShield settings.
+  prerollSeconds: 3,       // How long to silently preplay the next ad-free track.
+  adMaxSeconds: 45,        // Max silent ad time for sources marked adLikely:true.
+  maxPrerollTracks: 1      // Keep low on iPhone. 1 is safest.
+};
+
+/* =====================================================================
+   Local persistence
+   ===================================================================== */
+const STORE_KEY = 'teslaMusic.v1';
+
+function defaultState() {
+  return {
+    queue: [],
+    currentIndex: -1,
+    history: {},       // keyed by mbid or source:id
+    playlists: {},     // name -> array of track objects
+    recommendations: [],
+    mbidCache: {}      // source:id -> musicbrainz id
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      return Object.assign(defaultState(), JSON.parse(raw));
+    }
+  } catch (e) {
+    console.warn('load state failed', e);
+  }
+  return defaultState();
+}
+
+let state = loadState();
+
+function saveState() {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('save state failed', e);
+  }
+}
+
+/* =====================================================================
+   DOM + small utilities
+   ===================================================================== */
+const audio = document.getElementById('audio');
+const seek = document.getElementById('seek');
+const $ = s => document.querySelector(s);
+
+let lastResults = [];
+let seeking = false;
+let pendingSeekHandler = null;
+
+function esc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, m => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[m]));
+}
+
+function fmtTime(sec) {
+  if (!isFinite(sec) || sec < 0) sec = 0;
+  sec = Math.round(sec);
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function norm(s) {
+  return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function setStatus(msg) {
+  $('#status').textContent = msg;
+}
+
+function dedupeTracks(arr) {
+  const seen = new Set();
+  return (arr || []).filter(t => {
+    if (!t || !t.title || !t.artist) return false;
+    const k = norm(t.title) + '|' + norm(t.artist);
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+function trackKey(t) {
+  return t.mbid ? 'mbid:' + t.mbid : (t.source + ':' + t.id);
+}
+
+function getHistoryKey(track) {
+  return trackKey(track);
+}
+
+/* =====================================================================
+   JSONP helper for APIs that do not always send CORS headers.
+   Used by Jamendo and Last.fm.
+   ===================================================================== */
+function jsonp(base) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+
+    window[cb] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    const s = document.createElement('script');
+
+    function cleanup() {
+      delete window[cb];
+      if (s.parentNode) s.remove();
+      clearTimeout(timer);
+    }
+
+    s.onerror = () => {
+      cleanup();
+      reject(new Error('JSONP failed'));
+    };
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    }, 12000);
+
+    document.head.appendChild(s);
+    s.src = base + (base.includes('?') ? '&' : '?') + 'callback=' + encodeURIComponent(cb);
+  });
+}
+
+/* =====================================================================
+   Sources
+   - Jamendo: full tracks, free Client ID, ad-free.
+   - iTunes Search: 30s previews, no key, ad-free.
+   To add an ad-prone source later, return track objects with:
+     adLikely: true
+     trackStart: seconds where the real song starts
+   ===================================================================== */
+
+async function searchITunes(q, limit = 15) {
+  if (!q) return [];
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=${limit}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('iTunes ' + res.status);
+  const data = await res.json();
+
+  return (data.results || []).map(r => ({
+    id: String(r.trackId),
+    source: 'itunes',
+    title: r.trackName,
+    artist: r.artistName,
+    album: r.collectionName || '',
+    artwork: (r.artworkUrl100 || '').replace('100x100', '600x600'),
+    url: r.previewUrl || '',
+    duration: Math.round((r.trackTimeMillis || 30000) / 1000),
+    adLikely: false,
+    trackStart: 0
+  }));
+}
+
+async function searchJamendo(q, limit = 15) {
+  if (!CONFIG.jamendoClientId) return [];
+
+  const base = `https://api.jamendo.com/v3.0/track/?client_id=${encodeURIComponent(CONFIG.jamendoClientId)}&search=${encodeURIComponent(q)}&limit=${limit}&fields=id,name,artist_name,audio,image,duration,album_name&format=jsonp`;
+
+  try {
+    const data = await jsonp(base);
+    return (data.results || []).map(r => ({
+      id: String(r.id),
+      source: 'jamendo',
+      title: r.name,
+      artist: r.artist_name,
+      album: r.album_name || '',
+      artwork: r.image || '',
+      url: r.audio || '',
+      duration: Number(r.duration) || 0,
+      adLikely: false,
+      trackStart: 0,
+      streamFetchedAt: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Jamendo search failed', e);
+    return [];
+  }
+}
+
+async function combinedSearch(q, limit = 30) {
+  const [it, jm] = await Promise.allSettled([
+    searchITunes(q, 15),
+    searchJamendo(q, 15)
+  ]);
+
+  let out = [];
+  if (jm.status === 'fulfilled') out.push(...jm.value); // Prefer full Jamendo tracks.
+  if (it.status === 'fulfilled') out.push(...it.value); // iTunes previews as fallback.
+
+  return dedupeTracks(out).slice(0, limit);
+}
+
+async function findPlayable(title, artist) {
+  const q = `${artist} ${title}`.trim();
+  const [jm, it] = await Promise.allSettled([
+    searchJamendo(q, 1),
+    searchITunes(q, 1)
+  ]);
+
+  if (jm.status === 'fulfilled' && jm.value.length) return jm.value[0];
+  if (it.status === 'fulfilled' && it.value.length) return it.value[0];
+  return null;
+}
+
+/* =====================================================================
+   Rendering helpers
+   ===================================================================== */
+function trackRowHTML(track, context, idx) {
+  const art = track.artwork || '';
+  return `
+    <li class="track" data-context="${context}" data-idx="${idx}">
+      <img class="thumb" src="${esc(art)}" alt="" onerror="this.style.opacity=.25" />
+      <div class="meta">
+        <strong>${esc(track.title)}</strong>
+        <span>${esc(track.artist)} · ${esc(track.source)} · ${fmtTime(track.duration)}</span>
+      </div>
+      <div class="actions">
+        <button data-action="play">Play</button>
+        <button data-action="queue">Queue</button>
+        <button data-action="playlist">+PL</button>
+      </div>
+    </li>
+  `;
+}
+
+function renderResults(tracks) {
+  lastResults = tracks || [];
+  $('#resultsList').innerHTML = lastResults.length
+    ? lastResults.map((t, i) => trackRowHTML(t, 'results', i)).join('')
+    : '<li class="muted">No results.</li>';
+}
+
+function renderQueue() {
+  const q = state.queue;
+  $('#queueCount').textContent = q.length + ' songs';
+
+  $('#queueList').innerHTML = q.length ? q.map((t, i) => `
+    <li class="track" data-context="queue" data-idx="${i}">
+      <img class="thumb" src="${esc(t.artwork || '')}" alt="" onerror="this.style.opacity=.25" />
+      <div class="meta">
+        <strong>${i === state.currentIndex ? '▶ ' : ''}${esc(t.title)}</strong>
+        <span>${esc(t.artist)} · ${esc(t.source)} · ${fmtTime(t.duration)}</span>
+      </div>
+      <div class="actions">
+        <button data-action="play">Play</button>
+        <button data-action="remove">Remove</button>
+      </div>
+    </li>
+  `).join('') : '<li class="muted">Queue is empty.</li>';
+}
+
+function renderPlaylists() {
+  const names = Object.keys(state.playlists);
+  $('#playlistList').innerHTML = names.length ? names.map(name => `
+    <li class="playlist-item" data-context="playlists" data-name="${esc(name)}">
+      <div class="meta">
+        <strong>${esc(name)}</strong>
+        <span>${state.playlists[name].length} songs</span>
+      </div>
+      <div class="actions">
+        <button data-action="play">Play</button>
+        <button data-action="delete">Delete</button>
+      </div>
+    </li>
+  `).join('') : '<li class="muted">No playlists yet.</li>';
+}
+
+function renderHistory() {
+  const entries = Object.values(state.history)
+    .sort((a, b) => (b.lastPlayedAt || 0) - (a.lastPlayedAt || 0))
+    .slice(0, 150);
+
+  $('#historyList').innerHTML = entries.length ? entries.map(h => {
+    const mbidShort = h.mbid ? h.mbid.slice(0, 8) : 'no MBID';
+    const badgeClass = h.status === 'keep' ? 'keep' : (h.status === 'reject' ? 'reject' : '');
+    return `
+      <li class="history-item" data-context="history" data-key="${esc(h.key)}">
+        <div class="meta">
+          <strong>${esc(h.title)}</strong>
+          <span>${esc(h.artist)} · ${h.plays || 0} plays · MBID: ${mbidShort}</span>
+          <span class="badge ${badgeClass}">${h.status || 'unknown'}</span>
+        </div>
+        <div class="actions">
+          <button data-action="keep">Keep</button>
+          <button data-action="reject">Reject</button>
+        </div>
+      </li>
+    `;
+  }).join('') : '<li class="muted">No history yet.</li>';
+}
+
+function renderRecs() {
+  const recs = state.recommendations || [];
+  $('#recsList').innerHTML = recs.length
+    ? recs.map((t, i) => trackRowHTML(t, 'recs', i)).join('')
+    : '<li class="muted">No recommendations yet. Keep some songs, then Refresh.</li>';
+}
+
+function updatePlayerUI(track) {
+  $('#nowTitle').textContent = track ? track.title : 'Nothing playing';
+  $('#nowArtist').textContent = track ? `${track.artist} · ${track.source}` : '';
+
+  const art = $('#nowArt');
+  if (track && track.artwork) art.src = track.artwork;
+  else art.removeAttribute('src');
+
+  updatePlayerKeepButtons();
+}
+
+function currentTrack() {
+  return state.queue[state.currentIndex] || null;
+}
+
+function updatePlaybackState() {
+  const playing = !audio.paused;
+  $('#playBtn').textContent = playing ? '⏸' : '▶';
+
+  if ('mediaSession' in navigator) {
+    try {
+      navigator.mediaSession.playbackState = playing ? 'playing' : 'paused';
+    } catch (e) {}
+  }
+}
+
+function updateProgress() {
+  const d = audio.duration || 0;
+  if (!seeking && isFinite(d) && d > 0) {
+    seek.value = ((audio.currentTime || 0) / d) * 100;
+  }
+  $('#timeCurrent').textContent = fmtTime(audio.currentTime || 0);
+  $('#timeTotal').textContent = fmtTime(d);
+}
+
+let lastPositionUpdate = 0;
+function updatePositionState() {
+  if (!('mediaSession' in navigator) || !isFinite(audio.duration)) return;
+  const now = Date.now();
+  if (now - lastPositionUpdate < 5000 && audio.paused) return;
+  lastPositionUpdate = now;
+
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: audio.duration,
+      position: Math.min(audio.currentTime || 0, audio.duration),
+      playbackRate: 1
+    });
+  } catch (e) {}
+}
+
+function updateMediaSession(track) {
+  if (!('mediaSession' in navigator) || !track) return;
+
+  try {
+    const artwork = [];
+    if (track.artwork) {
+      artwork.push({ src: track.artwork, sizes: '600x600' });
+    }
+
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: track.title || 'Unknown title',
+      artist: track.artist || 'Unknown artist',
+      album: track.album || '',
+      artwork
+    });
+
+    navigator.mediaSession.playbackState = audio.paused ? 'paused' : 'playing';
+  } catch (e) {
+    console.warn('MediaSession metadata failed', e);
+  }
+}
+
+function updatePlayerKeepButtons() {
+  const t = currentTrack();
+  if (!t) return;
+
+  const h = state.history[getHistoryKey(t)];
+  const keepBtn = document.querySelector('[data-action="keep-current"]');
+  const rejectBtn = document.querySelector('[data-action="reject-current"]');
+
+  if (keepBtn) {
+    keepBtn.style.background = h && h.status === 'keep' ? 'var(--accent)' : '';
+    keepBtn.style.color = h && h.status === 'keep' ? '#062b17' : '';
+  }
+
+  if (rejectBtn) {
+    rejectBtn.style.background = h && h.status === 'reject' ? 'var(--danger)' : '';
+    rejectBtn.style.color = h && h.status === 'reject' ? '#fff' : '';
+  }
+}
+
+/* =====================================================================
+   Queue / playback
+   ===================================================================== */
+function findQueueIndex(track) {
+  const k = trackKey(track);
+  for (let i = 0; i < state.queue.length; i++) {
+    const q = state.queue[i];
+    if (trackKey(q) === k || (norm(q.title) === norm(track.title) && norm(q.artist) === norm(track.artist))) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+async function playNow(track) {
+  let idx = findQueueIndex(track);
+
+  if (idx < 0) {
+    if (state.currentIndex >= 0 && state.currentIndex < state.queue.length - 1) {
+      idx = state.currentIndex + 1;
+    } else {
+      idx = state.queue.length;
+    }
+    state.queue.splice(idx, 0, track);
+  }
+
+  state.currentIndex = idx;
+  saveState();
+  renderQueue();
+  await playCurrent();
+}
+
+function queueTrack(track) {
+  state.queue.push(track);
+  saveState();
+  renderQueue();
+  setStatus('Queued: ' + track.title);
+}
+
+async function ensureStream(track) {
+  // Jamendo stream URLs can expire. Refresh if older than 1 hour.
+  if (track.source === 'jamendo' && track.url && (Date.now() - (track.streamFetchedAt || 0) > 3600 * 1000)) {
+    try {
+      const fresh = await searchJamendo(`${track.artist} ${track.title}`, 1);
+      if (fresh[0] && fresh[0].url) {
+        track.url = fresh[0].url;
+        track.streamFetchedAt = Date.now();
+        saveState();
+      }
+    } catch (e) {}
+  }
+
+  if (track.url) return track;
+
+  const found = await findPlayable(track.title, track.artist);
+  if (!found) throw new Error('No stream found');
+
+  Object.assign(track, {
+    url: found.url,
+    duration: found.duration || track.duration,
+    artwork: found.artwork || track.artwork,
+    source: found.source,
+    id: found.id,
+    album: found.album || track.album,
+    streamFetchedAt: Date.now()
+  });
+
+  saveState();
+  return track;
+}
+
+async function playCurrent() {
+  const track = state.queue[state.currentIndex];
+  if (!track) {
+    updatePlayerUI(null);
+    return;
+  }
+
+  updatePlayerUI(track);
+
+  try {
+    await ensureStream(track);
+  } catch (e) {
+    setStatus('No stream found: ' + track.title);
+    setTimeout(nextTrack, 1200);
+    return;
+  }
+
+  recordPlay(track);
+  ensureMbid(track).catch(() => {});
+
+  // If a source is ad-prone and tells us where the song starts, seek there.
+  const startAt = track.adLikely ? (Number(track.trackStart) || Number(track.adDuration) || 0) : 0;
+
+  if (pendingSeekHandler) {
+    audio.removeEventListener('loadedmetadata', pendingSeekHandler);
+    pendingSeekHandler = null;
+  }
+
+  if (startAt > 0) {
+    pendingSeekHandler = () => {
+      try { audio.currentTime = startAt; } catch (e) {}
+    };
+    audio.addEventListener('loadedmetadata', pendingSeekHandler, { once: true });
+  }
+
+  audio.src = track.url;
+  updateMediaSession(track);
+
+  try {
+    await audio.play();
+    setStatus('Playing: ' + track.title + ' — ' + track.artist);
+  } catch (e) {
+    if (e && e.name !== 'AbortError') {
+      setStatus('Tap play again to start audio');
+    }
+  }
+
+  updatePlaybackState();
+  AdShield.schedule();
+  renderQueue();
+  saveState();
+}
+
+async function togglePlay() {
+  if (!audio.currentSrc) {
+    if (state.queue.length === 0) return;
+    if (state.currentIndex < 0) state.currentIndex = 0;
+    await playCurrent();
+    return;
+  }
+
+  try {
+    if (audio.paused) await audio.play();
+    else audio.pause();
+    updatePlaybackState();
+  } catch (e) {
+    setStatus('Tap play again to start audio');
+  }
+}
+
+function nextTrack() {
+  if (!state.queue.length) return;
+  state.currentIndex = (state.currentIndex + 1) % state.queue.length;
+  playCurrent();
+}
+
+function prevTrack() {
+  // If more than 3 seconds into the song, restart it. Otherwise previous track.
+  if ((audio.currentTime || 0) > 3) {
+    audio.currentTime = 0;
+    return;
+  }
+  if (!state.queue.length) return;
+  state.currentIndex = (state.currentIndex - 1 + state.queue.length) % state.queue.length;
+  playCurrent();
+}
+
+function removeQueueItem(idx) {
+  state.queue.splice(idx, 1);
+
+  if (idx < state.currentIndex) {
+    state.currentIndex--;
+  } else if (idx === state.currentIndex) {
+    if (!state.queue.length) {
+      state.currentIndex = -1;
+      audio.pause();
+      updatePlayerUI(null);
+    } else {
+      state.currentIndex = Math.min(idx, state.queue.length - 1);
+      saveState();
+      renderQueue();
+      playCurrent();
+      return;
+    }
+  }
+
+  saveState();
+  renderQueue();
+}
+
+function clearQueue() {
+  state.queue = [];
+  state.currentIndex = -1;
+  AdShield.stopAll();
+  audio.pause();
+  updatePlayerUI(null);
+  saveState();
+  renderQueue();
+  setStatus('Queue cleared');
+}
+
+/* =====================================================================
+   Playlists
+   ===================================================================== */
+function createPlaylist(name) {
+  name = (name || '').trim();
+  if (!name) return;
+  if (!state.playlists[name]) state.playlists[name] = [];
+  saveState();
+  renderPlaylists();
+  setStatus('Created playlist: ' + name);
+}
+
+function addToPlaylistPrompt(track) {
+  const name = prompt('Add to playlist (type a new name to create):');
+  if (name === null) return;
+  name = name.trim();
+  if (!name) return;
+
+  if (!state.playlists[name]) state.playlists[name] = [];
+  state.playlists[name].push(track);
+  saveState();
+  renderPlaylists();
+  setStatus('Added to playlist: ' + name);
+}
+
+function playPlaylist(name) {
+  const pl = state.playlists[name] || [];
+  if (!pl.length) return;
+
+  state.queue = pl.slice();
+  state.currentIndex = 0;
+  saveState();
+  renderQueue();
+  switchTab('queue');
+  playCurrent();
+}
+
+function deletePlaylist(name) {
+  if (confirm('Delete playlist: ' + name + '?')) {
+    delete state.playlists[name];
+    saveState();
+    renderPlaylists();
+  }
+}
+
+/* =====================================================================
+   History / keep-reject / MusicBrainz ID
+   ===================================================================== */
+function recordPlay(track) {
+  const key = getHistoryKey(track);
+  const h = state.history[key] || {
+    key,
+    mbid: track.mbid || '',
+    title: track.title,
+    artist: track.artist,
+    sourceId: track.source + ':' + track.id,
+    status: 'unknown',
+    plays: 0
+  };
+
+  h.plays = (h.plays || 0) + 1;
+  h.lastPlayedAt = Date.now();
+  if (track.mbid) h.mbid = track.mbid;
+
+  state.history[key] = h;
+  saveState();
+  renderHistory();
+  updatePlayerKeepButtons();
+}
+
+function setKeepReject(track, positive) {
+  const key = getHistoryKey(track);
+
+  state.history[key] = state.history[key] || {
+    key,
+    mbid: track.mbid || '',
+    title: track.title,
+    artist: track.artist,
+    sourceId: track.source + ':' + track.id,
+    status: 'unknown',
+    plays: 0
+  };
+
+  state.history[key].status = positive ? 'keep' : 'reject';
+  if (track.mbid) state.history[key].mbid = track.mbid;
+
+  saveState();
+  renderHistory();
+  updatePlayerKeepButtons();
+  sendLBFeedback(track, positive).catch(() => {});
+  setStatus((positive ? 'Kept: ' : 'Rejected: ') + track.title);
+}
+
+function setHistoryStatusByKey(key, positive) {
+  const h = state.history[key];
+  if (!h) return;
+
+  h.status = positive ? 'keep' : 'reject';
+  saveState();
+  renderHistory();
+  updatePlayerKeepButtons();
+  sendLBFeedback({ mbid: h.mbid, title: h.title, artist: h.artist }, positive).catch(() => {});
+  setStatus((positive ? 'Kept: ' : 'Rejected: ') + h.title);
+}
+
+let lastMBRequest = 0;
+
+async function ensureMbid(track) {
+  if (!track || !track.title || !track.artist) return track.mbid || '';
+
+  const sourceKey = track.source + ':' + track.id;
+
+  if (track.mbid) return track.mbid;
+
+  if (state.mbidCache[sourceKey]) {
+    applyMbid(track, state.mbidCache[sourceKey]);
+    saveState();
+    renderHistory();
+    updatePlayerKeepButtons();
+    return track.mbid;
+  }
+
+  // Respect MusicBrainz ~1 request/sec guideline.
+  const now = Date.now();
+  const wait = Math.max(0, 1050 - (now - lastMBRequest));
+  if (wait) await sleep(wait);
+  lastMBRequest = Date.now();
+
+  const query = `recording:"${track.title}" AND artist:"${track.artist}"`;
+  const url = `https://musicbrainz.org/ws/2/recording/?query=${encodeURIComponent(query)}&fmt=json&limit=1`;
+
+  try {
+    const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!res.ok) throw new Error('MusicBrainz ' + res.status);
+
+    const data = await res.json();
+    const rec = data && data.recordings ? data.recordings[0] : null;
+    const mbid = rec ? rec.id : '';
+
+    if (mbid) {
+      state.mbidCache[sourceKey] = mbid;
+      applyMbid(track, mbid);
+      saveState();
+      renderHistory();
+      updatePlayerKeepButtons();
+    }
+
+    return mbid;
+  } catch (e) {
+    console.warn('MusicBrainz lookup failed', e);
+    return '';
+  }
+}
+
+function applyMbid(track, mbid) {
+  if (!mbid || track.mbid === mbid) return;
+
+  const oldKey = track.source + ':' + track.id;
+  track.mbid = mbid;
+  const newKey = 'mbid:' + mbid;
+
+  // Migrate history from source:id key to MusicBrainz ID key.
+  if (state.history[oldKey] && !state.history[newKey]) {
+    state.history[newKey] = Object.assign({}, state.history[oldKey], { key: newKey, mbid });
+    delete state.history[oldKey];
+  } else if (state.history[newKey] && state.history[oldKey]) {
+    const a = state.history[newKey];
+    const b = state.history[oldKey];
+
+    a.plays = (a.plays || 0) + (b.plays || 0);
+    a.lastPlayedAt = Math.max(a.lastPlayedAt || 0, b.lastPlayedAt || 0);
+    if (!a.mbid) a.mbid = mbid;
+
+    delete state.history[oldKey];
+  }
+}
+
+/* =====================================================================
+   ListenBrainz feedback + recommendations
+   ===================================================================== */
+async function sendLBFeedback(track, positive) {
+  if (!CONFIG.listenbrainzToken || !track || !track.mbid) return;
+
+  try {
+    const res = await fetch('https://listenbrainz.org/1/feedback', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Token ' + CONFIG.listenbrainzToken,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        recording_mbid: track.mbid,
+        listening_time: Math.floor(Date.now() / 1000),
+        feedback: !!positive
+      })
+    });
+
+    if (!res.ok && res.status !== 409) {
+      console.warn('ListenBrainz feedback status', res.status);
+    }
+  } catch (e) {
+    console.warn('ListenBrainz feedback failed', e);
+  }
+}
+
+async function lbRecs() {
+  const url = `https://listenbrainz.org/1/user/${encodeURIComponent(CONFIG.listenbrainzUsername)}/recommendations/tracks?limit=20`;
+
+  const res = await fetch(url, {
+    headers: { 'Authorization': 'Token ' + CONFIG.listenbrainzToken }
+  });
+
+  if (!res.ok) throw new Error('ListenBrainz ' + res.status);
+
+  const data = await res.json();
+  if (data.status && data.status !== 'ok') throw new Error(data.code || 'LB error');
+
+  const arr = (data.payload && (data.payload.tracks || data.payload.recommendations)) || [];
+
+  return arr.map(t => ({
+    id: 'lb:' + (t.mbid || norm(t.name) + ':' + (t.artist_name || '')),
+    source: 'listenbrainz',
+    title: t.name || t.title,
+    artist: t.artist_name || t.artist,
+    mbid: t.mbid || t.recording_mbid || '',
+    url: '',
+    artwork: '',
+    duration: 0,
+    adLikely: false
+  }));
+}
+
+/* =====================================================================
+   Last.fm recommendations from kept artists
+   Uses artist.getTopTracks. No OAuth token required for this simple path.
+   ===================================================================== */
+async function lastfmArtistTopTracks(artist) {
+  const base = `https://ws.audioscrobbler.com/2.0/?method=artist.getTopTracks&artist=${encodeURIComponent(artist)}&api_key=${encodeURIComponent(CONFIG.lastfmApiKey)}&format=jsonp`;
+
+  const data = await jsonp(base);
+  if (data && data.error) throw new Error('Last.fm error ' + data.error);
+
+  const tracks = (data.toptracks && data.toptracks.track) || [];
+
+  return tracks.map(t => ({
+    id: 'lf:' + norm(t.name) + ':' + norm((t.artist && t.artist.name) || artist),
+    source: 'lastfm',
+    title: t.name,
+    artist: (t.artist && t.artist.name) || artist,
+    url: '',
+    artwork: '',
+    duration: 0,
+    adLikely: false
+  }));
+}
+
+async function lastfmRecs() {
+  const artists = topKeptArtists(3);
+  if (!artists.length) return [];
+
+  let out = [];
+
+  for (const artist of artists) {
+    try {
+      const tracks = await lastfmArtistTopTracks(artist);
+      out.push(...tracks.slice(0, 8));
+    } catch (e) {
+      console.warn('Last.fm recommendations failed', e);
+    }
+    await sleep(250);
+  }
+
+  return dedupeTracks(out).slice(0, 20);
+}
+
+async function localRecs() {
+  let artists = topKeptArtists(1);
+  if (!artists.length) artists = topPlayedArtists(1);
+  if (!artists.length) return [];
+
+  try {
+    const tracks = await searchITunes(artists[0], 12);
+    return tracks.map(t => Object.assign({}, t, { source: 'local' }));
+  } catch (e) {
+    return [];
+  }
+}
+
+function topArtistsByStatus(status, n) {
+  const counts = {};
+
+  for (const h of Object.values(state.history)) {
+    if (status && h.status !== status) continue;
+    if (!h.artist) continue;
+    counts[h.artist] = (counts[h.artist] || 0) + 1 + (h.plays || 0);
+  }
+
+  return Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, n);
+}
+
+function topKeptArtists(n) {
+  return topArtistsByStatus('keep', n);
+}
+
+function topPlayedArtists(n) {
+  return topArtistsByStatus(null, n);
+}
+
+async function refreshRecs() {
+  $('#recSourceLabel').textContent = 'Loading…';
+
+  let recs = [];
+  let sourceUsed = 'none';
+
+  if (CONFIG.listenbrainzUsername && CONFIG.listenbrainzToken) {
+    try {
+      recs = await lbRecs();
+      sourceUsed = 'ListenBrainz';
+    } catch (e) {
+      console.warn('LB recommendations failed', e);
+    }
+  }
+
+  if (!recs.length && CONFIG.lastfmApiKey) {
+    try {
+      recs = await lastfmRecs();
+      sourceUsed = 'Last.fm';
+    } catch (e) {
+      console.warn('Last.fm recommendations failed', e);
+    }
+  }
+
+  if (!recs.length) {
+    try {
+      recs = await localRecs();
+      sourceUsed = 'Fallback: kept artists via iTunes';
+    } catch (e) {}
+  }
+
+  state.recommendations = dedupeTracks(recs).slice(0, 25);
+  saveState();
+  $('#recSourceLabel').textContent = sourceUsed;
+  renderRecs();
+  setStatus('Recommendations loaded from ' + sourceUsed);
+}
+
+/* =====================================================================
+   AdShield — silent preroll / ad check for upcoming tracks.
+   Default sources are ad-free, so this mostly prewarms the next track.
+   For an ad-prone source, set:
+     track.adLikely = true
+     track.trackStart = seconds where real song starts
+   ===================================================================== */
+function getUpcomingTracks(n) {
+  const out = [];
+  for (let i = state.currentIndex + 1; i < state.queue.length && out.length < n; i++) {
+    if (state.queue[i] && state.queue[i].url) out.push(state.queue[i]);
+  }
+  return out;
+}
+
+const AdShield = {
+  jobs: [],
+
+  set(text) {
+    const el = $('#adStatus');
+    if (el) el.textContent = text;
+  },
+
+  stopAll() {
+    this.jobs.forEach(j => {
+      try { j.audio.pause(); } catch (e) {}
+      try { j.audio.src = ''; } catch (e) {}
+    });
+    this.jobs = [];
+    this.set('AdShield off');
+  },
+
+  schedule() {
+    this.stopAll();
+
+    const upcoming = getUpcomingTracks(CONFIG.maxPrerollTracks);
+    if (!upcoming.length) {
+      this.set('AdShield: no next track');
+      return;
+    }
+
+    upcoming.forEach((track, i) => {
+      setTimeout(() => this.preroll(track), i * 200);
+    });
+  },
+
+  async preroll(track) {
+    if (!track || !track.url) {
+      this.set('AdShield: no stream to check');
+      return;
+    }
+
+    if (this.jobs.some(j => j.track === track)) return;
+
+    const a = new Audio();
+    a.src = track.url;
+    a.preload = 'auto';
+    a.setAttribute('playsinline', 'true');
+    a.volume = 0; // Inaudible preroll.
+
+    this.jobs.push({ track, audio: a });
+    this.set('AdShield checking next…');
+
+    try {
+      await a.play();
+
+      if (track.adLikely) {
+        const target = Number(track.trackStart) || Number(track.adDuration) || CONFIG.adMaxSeconds;
+
+        await new Promise(resolve => {
+          let done = false;
+
+          const finish = () => {
+            if (done) return;
+            done = true;
+            a.removeEventListener('timeupdate', check);
+            a.removeEventListener('ended', finish);
+            clearTimeout(timer);
+            resolve();
+          };
+
+          const check = () => {
+            if ((a.currentTime || 0) >= target) finish();
+          };
+
+          const timer = setTimeout(finish, (target + 10) * 1000);
+
+          a.addEventListener('timeupdate', check);
+          a.addEventListener('ended', finish);
+        });
+
+        this.set(`AdShield skipped ${Math.floor(target)}s`);
+      } else {
+        await sleep(CONFIG.prerollSeconds * 1000);
+        if (!a.paused) a.pause();
+        this.set('AdShield ready (no ads detected)');
+      }
+    } catch (e) {
+      console.warn('Preroll failed', e);
+      this.set('AdShield: next not preplayed');
+    }
+  }
+};
+
+/* =====================================================================
+   Audio element events + Media Session
+   ===================================================================== */
+audio.addEventListener('play', () => {
+  updatePlaybackState();
+  AdShield.schedule();
+});
+
+audio.addEventListener('pause', updatePlaybackState);
+audio.addEventListener('ended', nextTrack);
+
+audio.addEventListener('loadedmetadata', () => {
+  if (isFinite(audio.duration)) updatePositionState();
+});
+
+audio.addEventListener('timeupdate', () => {
+  updateProgress();
+  updatePositionState();
+});
+
+audio.addEventListener('error', () => {
+  if (!audio.src) return;
+  setStatus('Playback error. Trying next…');
+  setTimeout(nextTrack, 800);
+});
+
+seek.addEventListener('input', () => {
+  seeking = true;
+  const d = audio.duration || 0;
+  $('#timeCurrent').textContent = fmtTime((seek.value / 100) * d);
+});
+
+seek.addEventListener('change', () => {
+  if (isFinite(audio.duration) && audio.duration > 0) {
+    audio.currentTime = (seek.value / 100) * audio.duration;
+  }
+  seeking = false;
+  updateProgress();
+});
+
+if ('mediaSession' in navigator) {
+  try {
+    navigator.mediaSession.setActionHandler('play', () => togglePlay());
+    navigator.mediaSession.setActionHandler('pause', () => togglePlay());
+    navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
+    navigator.mediaSession.setActionHandler('nexttrack', nextTrack);
+
+    if (navigator.mediaSession.setActionHandler) {
+      navigator.mediaSession.setActionHandler('seekto', d => {
+        if (d && d.seekTime != null && isFinite(audio.duration)) {
+          audio.currentTime = d.seekTime;
+        }
+      });
+    }
+  } catch (e) {}
+}
+
+/* =====================================================================
+   UI events: tabs, forms, buttons
+   ===================================================================== */
+document.querySelectorAll('.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    document.querySelectorAll('section.tab').forEach(s => s.classList.remove('active'));
+    const tab = btn.dataset.tab;
+    $('#tab-' + tab).classList.add('active');
+  });
+});
+
+function switchTab(name) {
+  const btn = document.querySelector('.tabs button[data-tab="' + name + '"]');
+  if (btn) btn.click();
+}
+
+$('#searchForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('#searchInput').value.trim();
+  if (!q) return;
+
+  $('#resultsList').innerHTML = '<li class="muted">Searching…</li>';
+
+  try {
+    const tracks = await combinedSearch(q);
+    renderResults(tracks);
+    setStatus('Found ' + tracks.length + ' results');
+  } catch (err) {
+    console.error(err);
+    renderResults([]);
+    setStatus('Search failed: ' + err.message);
+  }
+});
+
+$('#playlistForm').addEventListener('submit', e => {
+  e.preventDefault();
+  createPlaylist($('#playlistName').value);
+  $('#playlistName').value = '';
+});
+
+document.addEventListener('click', async e => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+
+  try {
+    // Player bar actions.
+    if (action === 'toggle-play') { togglePlay(); return; }
+    if (action === 'prev') { prevTrack(); return; }
+    if (action === 'next') { nextTrack(); return; }
+    if (action === 'keep-current') { const t = currentTrack(); if (t) setKeepReject(t, true); return; }
+    if (action === 'reject-current') { const t = currentTrack(); if (t) setKeepReject(t, false); return; }
+    if (action === 'add-current-playlist') { const t = currentTrack(); if (t) addToPlaylistPrompt(t); return; }
+
+    // Contextual list actions.
+    const ctxEl = btn.closest('[data-context]');
+    const context = ctxEl ? ctxEl.dataset.context : '';
+    const idx = ctxEl && ctxEl.dataset.idx != null ? +ctxEl.dataset.idx : null;
+    const key = ctxEl ? (ctxEl.dataset.key || '') : '';
+    const name = ctxEl ? (ctxEl.dataset.name || '') : '';
+
+    if (context === 'results' && idx != null) {
+      const t = lastResults[idx];
+      if (!t) return;
+      if (action === 'play') playNow(t);
+      else if (action === 'queue') queueTrack(t);
+      else if (action === 'playlist') addToPlaylistPrompt(t);
+      return;
+    }
+
+    if (context === 'recs' && idx != null) {
+      const t = state.recommendations[idx];
+      if (!t) return;
+      if (action === 'play') playNow(t);
+      else if (action === 'queue') queueTrack(t);
+      else if (action === 'playlist') addToPlaylistPrompt(t);
+      return;
+    }
+
+    if (context === 'queue' && idx != null) {
+      const t = state.queue[idx];
+      if (!t) return;
+      if (action === 'play') {
+        state.currentIndex = idx;
+        playCurrent();
+      } else if (action === 'remove') {
+        removeQueueItem(idx);
+      }
+      return;
+    }
+
+    if (context === 'history' && key) {
+      if (action === 'keep') setHistoryStatusByKey(key, true);
+      else if (action === 'reject') setHistoryStatusByKey(key, false);
+      return;
+    }
+
+    if (context === 'playlists' && name) {
+      if (action === 'play') playPlaylist(name);
+      else if (action === 'delete') deletePlaylist(name);
+      return;
+    }
+
+    // Global card buttons.
+    if (!context) {
+      if (action === 'play-all') {
+        if (state.queue.length) {
+          state.currentIndex = 0;
+          playCurrent();
+        }
+      } else if (action === 'clear-queue') {
+        clearQueue();
+      } else if (action === 'refresh-recs') {
+        refreshRecs();
+      } else if (action === 'run-import') {
+        runImport();
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    setStatus('Error: ' + err.message);
+  }
+});
+
+/* =====================================================================
+   Bulk import
+   ===================================================================== */
+function importLog(msg) {
+  const pre = $('#importLog');
+  pre.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  pre.scrollTop = pre.scrollHeight;
+}
+
+async function runImport() {
+  const text = $('#importText').value.trim();
+  if (!text) return;
+
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  importLog(`Starting import of ${lines.length} lines…`);
+
+  let ok = 0;
+  let fail = 0;
+
+  for (const line of lines) {
+    // Expected format: Artist - Title
+    const parts = line.split('-');
+    if (parts.length < 2) {
+      importLog('Skip (no dash): ' + line);
+      fail++;
+      continue;
+    }
+
+    const artist = parts[0].trim();
+    const title = parts.slice(1).join('-').trim();
+
+    try {
+      const track = await findPlayable(title, artist);
+      if (track) {
+        queueTrack(track);
+        ok++;
+        importLog(`Queued: ${track.title} — ${track.artist} (${track.source})`);
+      } else {
+        fail++;
+        importLog('Not found: ' + line);
+      }
+    } catch (e) {
+      fail++;
+      importLog('Error: ' + line + ' (' + e.message + ')');
+    }
+
+    await sleep(250); // Be gentle with free APIs.
+  }
+
+  importLog(`Done. Queued ${ok}, failed ${fail}.`);
+  setStatus(`Import done: ${ok} queued, ${fail} failed`);
+  renderQueue();
+}
+
+/* =====================================================================
+   Init
+   ===================================================================== */
+function init() {
+  if (state.currentIndex >= state.queue.length) {
+    state.currentIndex = Math.max(0, state.queue.length - 1);
+  }
+  if (state.currentIndex < -1) state.currentIndex = -1;
+
+  renderResults([]);
+  renderQueue();
+  renderPlaylists();
+  renderHistory();
+  renderRecs();
+  updatePlayerUI(null);
+
+  if (!CONFIG.jamendoClientId) {
+    setStatus('Tip: add Jamendo Client ID in CONFIG for full ad-free streams. iTunes previews work without keys.');
+  } else {
+    setStatus('Ready. Tap play once to start Bluetooth audio.');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
