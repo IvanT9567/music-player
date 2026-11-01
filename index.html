@@ -487,7 +487,7 @@ function getHistoryKey(track) {
 
 /* =====================================================================
    JSONP helper for APIs that do not always send CORS headers.
-   Used by Jamendo and Last.fm.
+   Used by Last.fm.
    ===================================================================== */
 function jsonp(base) {
   return new Promise((resolve, reject) => {
@@ -532,7 +532,8 @@ function jsonp(base) {
 
 async function searchITunes(q, limit = 15) {
   if (!q) return [];
-  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&limit=${limit}`;
+  // media=music makes iOS Safari redirect the request to musics://, which fetch cannot follow.
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=song&limit=${limit}`;
   const res = await fetch(url);
   if (!res.ok) throw new Error('iTunes ' + res.status);
   const data = await res.json();
@@ -554,10 +555,16 @@ async function searchITunes(q, limit = 15) {
 async function searchJamendo(q, limit = 15) {
   if (!CONFIG.jamendoClientId) return [];
 
-  const base = `https://api.jamendo.com/v3.0/track/?client_id=${encodeURIComponent(CONFIG.jamendoClientId)}&search=${encodeURIComponent(q)}&limit=${limit}&fields=id,name,artist_name,audio,image,duration,album_name&format=jsonp`;
+  // Endpoint is /tracks/. format=jsonp is invalid; JSON responses allow CORS.
+  const url = `https://api.jamendo.com/v3.0/tracks/?client_id=${encodeURIComponent(CONFIG.jamendoClientId)}&search=${encodeURIComponent(q)}&limit=${limit}&fields=id,name,artist_name,audio,image,duration,album_name&format=json`;
 
   try {
-    const data = await jsonp(base);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Jamendo ' + res.status);
+    const data = await res.json();
+    if (!data || (data.headers && data.headers.status === 'failed')) {
+      throw new Error((data && data.headers && data.headers.error_message) || 'Jamendo failed');
+    }
     return (data.results || []).map(r => ({
       id: String(r.id),
       source: 'jamendo',
@@ -590,15 +597,50 @@ async function combinedSearch(q, limit = 30) {
   return dedupeTracks(out).slice(0, limit);
 }
 
+function titleArtistScore(track, title, artist) {
+  const nt = norm(track && track.title);
+  const na = norm(track && track.artist);
+  const qt = norm(title);
+  const qa = norm(artist);
+  if (!nt || !qt) return 0;
+  let score = 0;
+  if (nt === qt) score += 4;
+  else if (nt.includes(qt) || qt.includes(nt)) score += 2;
+  else return 0;
+  if (qa && (na === qa || na.includes(qa) || qa.includes(na))) score += 4;
+  if (track.url) score += 1;
+  return score;
+}
+
+function bestTitleArtistMatch(tracks, title, artist) {
+  let best = null;
+  let bestScore = 0;
+  for (const track of tracks || []) {
+    const score = titleArtistScore(track, title, artist);
+    if (score > bestScore) {
+      best = track;
+      bestScore = score;
+    }
+  }
+  // Require a real title match. Artist agreement is included in the score.
+  return bestScore >= 4 ? best : null;
+}
+
 async function findPlayable(title, artist) {
   const q = `${artist} ${title}`.trim();
   const [jm, it] = await Promise.allSettled([
-    searchJamendo(q, 1),
-    searchITunes(q, 1)
+    searchJamendo(q, 10),
+    searchITunes(q, 10)
   ]);
 
-  if (jm.status === 'fulfilled' && jm.value.length) return jm.value[0];
-  if (it.status === 'fulfilled' && it.value.length) return it.value[0];
+  const jam = jm.status === 'fulfilled' ? jm.value : [];
+  const its = it.status === 'fulfilled' ? it.value : [];
+  const jamHit = bestTitleArtistMatch(jam, title, artist);
+  const itHit = bestTitleArtistMatch(its, title, artist);
+  if (jamHit && (!itHit || titleArtistScore(jamHit, title, artist) >= titleArtistScore(itHit, title, artist))) return jamHit;
+  if (itHit) return itHit;
+  if (jam.length) return jam[0];
+  if (its.length) return its[0];
   return null;
 }
 
